@@ -40,5 +40,4 @@ application-prod.properties
 *.war
 .DS_Store
 
-# Configuration Exceptions
-!application.properties 
+*.properties
