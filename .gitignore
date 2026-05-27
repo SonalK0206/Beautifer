@@ -39,3 +39,5 @@ application-prod.properties
 *.jar
 *.war
 .DS_Store
+
+*.properties
