@@ -1,0 +1,11 @@
+package com.shop.shopping_platform.Repository;
+
+import com.shop.shopping_platform.model.Cart;
+import com.shop.shopping_platform.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface CartRepository extends JpaRepository<Cart, Long> {
+    List<Cart> findByUser(User user);
+    void deleteByUser(User user);
+}
