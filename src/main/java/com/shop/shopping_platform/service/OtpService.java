@@ -5,7 +5,6 @@ import com.shop.shopping_platform.Repository.OtpRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -20,22 +19,18 @@ public class OtpService {
     @Autowired
     private JavaMailSender mailSender;
 
-    // Step 1 - save OTP to DB (runs on main thread)
     @Transactional
-    public String saveOtp(String email) {
+    public void generateAndSendOtp(String email) {
         String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+
         otpRepository.findByEmail(email).ifPresent(otpRepository::delete);
+
         OtpStore otpStore = new OtpStore();
         otpStore.setEmail(email);
         otpStore.setOtp(otp);
         otpStore.setExpiresAt(LocalDateTime.now().plusMinutes(5));
         otpRepository.save(otpStore);
-        return otp;
-    }
 
-    // Step 2 - send email (runs on async thread)
-    @Async
-    public void sendOtpEmail(String email, String otp) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("noreply.onetimepwd@gmail.com");
@@ -48,12 +43,6 @@ public class OtpService {
             e.printStackTrace();
             System.err.println("Failed to send OTP email: " + e.getMessage());
         }
-    }
-
-    // Step 3 - call both (this is what your controller calls)
-    public void generateAndSendOtp(String email) {
-        String otp = saveOtp(email);
-        sendOtpEmail(email, otp);
     }
 
     @Transactional
