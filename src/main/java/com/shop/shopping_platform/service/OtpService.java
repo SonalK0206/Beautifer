@@ -34,12 +34,15 @@ public class OtpService {
             otpRepository.save(otpStore);
 
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("noreply.onetimepwd@gmail.com");
             message.setTo(email);
             message.setSubject("Your Login OTP - Shopping Platform");
             message.setText("Your OTP is: " + otp + "\n\nThis OTP is valid for 5 minutes.");
             mailSender.send(message);
+            System.out.println("OTP email sent successfully to: " + email);
 
         } catch (Exception e) {
+            e.printStackTrace();
             System.err.println("Failed to send OTP email: " + e.getMessage());
         }
     }
