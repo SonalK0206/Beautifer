@@ -20,19 +20,23 @@ public class OtpService {
     @Autowired
     private JavaMailSender mailSender;
 
+    // Step 1 - save OTP to DB (runs on main thread)
+    @Transactional
+    public String saveOtp(String email) {
+        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+        otpRepository.findByEmail(email).ifPresent(otpRepository::delete);
+        OtpStore otpStore = new OtpStore();
+        otpStore.setEmail(email);
+        otpStore.setOtp(otp);
+        otpStore.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        otpRepository.save(otpStore);
+        return otp;
+    }
+
+    // Step 2 - send email (runs on async thread)
     @Async
-    public void generateAndSendOtp(String email) {
+    public void sendOtpEmail(String email, String otp) {
         try {
-            String otp = String.valueOf(new Random().nextInt(900000) + 100000);
-
-            otpRepository.findByEmail(email).ifPresent(otpRepository::delete);
-
-            OtpStore otpStore = new OtpStore();
-            otpStore.setEmail(email);
-            otpStore.setOtp(otp);
-            otpStore.setExpiresAt(LocalDateTime.now().plusMinutes(5));
-            otpRepository.save(otpStore);
-
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("noreply.onetimepwd@gmail.com");
             message.setTo(email);
@@ -40,21 +44,24 @@ public class OtpService {
             message.setText("Your OTP is: " + otp + "\n\nThis OTP is valid for 5 minutes.");
             mailSender.send(message);
             System.out.println("OTP email sent successfully to: " + email);
-
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Failed to send OTP email: " + e.getMessage());
         }
     }
 
+    // Step 3 - call both (this is what your controller calls)
+    public void generateAndSendOtp(String email) {
+        String otp = saveOtp(email);
+        sendOtpEmail(email, otp);
+    }
+
     @Transactional
     public boolean validateOtp(String email, String otp) {
         OtpStore otpStore = otpRepository.findByEmail(email).orElse(null);
-
         if (otpStore == null) return false;
         if (LocalDateTime.now().isAfter(otpStore.getExpiresAt())) return false;
         if (!otpStore.getOtp().equals(otp)) return false;
-
         otpRepository.deleteByEmail(email);
         return true;
     }
